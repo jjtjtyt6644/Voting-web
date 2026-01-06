@@ -712,9 +712,18 @@ def agree_to_tiebreak():
 @api_login_required
 def check_tiebreak_agreement():
     """Check if all users agreed to break tie"""
-    db = get_db()
-    total_users = db.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-    agreed_users = len(users_agreed_to_tiebreak)
+    user_id = session['user_id']
+    if user_id not in user_rooms:
+        return jsonify({'error': 'User not in any room'}), 400
+    
+    room_code = user_rooms[user_id]
+    room = voting_rooms.get(room_code)
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+    
+    # Count only room members who are logged in
+    total_users = len(room['users'] & logged_in_users)
+    agreed_users = len(users_agreed_to_tiebreak & room['users'])
     
     all_agreed = agreed_users == total_users and total_users > 0
     
@@ -730,9 +739,18 @@ def arrived_tiebreaker():
     """Mark that a user has loaded the tiebreaker page"""
     user_id = session.get('user_id')
     users_arrived_tiebreak.add(user_id)
-    db = get_db()
-    total_users = db.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-    arrived = len(users_arrived_tiebreak)
+    
+    if user_id not in user_rooms:
+        return jsonify({'error': 'User not in any room'}), 400
+    
+    room_code = user_rooms[user_id]
+    room = voting_rooms.get(room_code)
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+    
+    # Count only room members who are logged in
+    total_users = len(room['users'] & logged_in_users)
+    arrived = len(users_arrived_tiebreak & room['users'])
     all_arrived = arrived == total_users and total_users > 0
     # If all arrived, initialize tiebreaker state and clear agreements
     if all_arrived:
