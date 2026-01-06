@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4E1 VOTING - Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .results-container {
+            padding: 20px 0;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .result-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .result-meta {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .results-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .result-vote-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #f0f0f0;
+        }
+
+        .result-vote-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .result-vote-count {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .result-vote-percent {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        .yes-bar { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .no-bar { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .abstain-bar { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+
+        .voting-status {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .voting-status.passed {
+            border-left-color: #10b981;
+        }
+
+        .voting-status.failed {
+            border-left-color: #ef4444;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .status-badge.passed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.failed {
+            background: #fee2e2;
+            color: #7f1d1d;
+        }
+
+        .status-badge.tied {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .back-button {
+            margin-bottom: 20px;
+        }
+
+        .back-button button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .back-button button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-results p {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div>
+                    <h1>4E1 VOTING</h1>
+                    <p class="subtitle">Voting Results</p>
+                </div>
+                <div class="user-info">
+                    <a href="/logout" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="back-button">
+            <button onclick="goBack()">← Back to Voting</button>
+        </div>
+
+        <div class="main-content">
+            <main class="content" style="flex: 1;">
+                <div class="panel">
+                    <h2>📊 Proposal Results</h2>
+                    <div class="results-container" id="resultsContainer">
+                        <p class="empty">Loading results...</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let proposals = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadResults();
+            setInterval(loadResults, 5000);
+        });
+
+        async function loadResults() {
+            try {
+                const response = await fetch('/api/proposals');
+                proposals = await response.json();
+                renderResults();
+            } catch (error) {
+                console.error('Error loading results:', error);
+            }
+        }
+
+        function renderResults() {
+            const container = document.getElementById('resultsContainer');
+
+            if (proposals.length === 0) {
+                container.innerHTML = '<div class="no-results"><p>No proposals available yet.</p></div>';
+                return;
+            }
+
+            let html = '';
+
+            proposals.forEach(proposal => {
+                const yesCount = proposal.yes || 0;
+                const noCount = proposal.no || 0;
+                const abstainCount = proposal.abstain || 0;
+                const totalVotes = yesCount + noCount + abstainCount;
+                const totalMembers = proposal.total_members || 1;
+
+                const yesPct = totalVotes > 0 ? Math.round((yesCount / totalVotes) * 100) : 0;
+                const noPct = totalVotes > 0 ? Math.round((noCount / totalVotes) * 100) : 0;
+                const abstainPct = totalVotes > 0 ? Math.round((abstainCount / totalVotes) * 100) : 0;
+
+                const passed = yesCount > noCount;
+                const statusClass = passed ? 'passed' : (noCount > yesCount ? 'failed' : 'tied');
+                const statusLabel = passed ? 'PASSED' : (noCount > yesCount ? 'FAILED' : 'TIED');
+
+                html += `
+                    <div class="result-card">
+                        <div class="result-title">${escapeHtml(proposal.title)}</div>
+                        <div class="result-description">${escapeHtml(proposal.description)}</div>
+                        <div class="result-meta">
+                            Proposed by: <strong>${escapeHtml(proposal.proposed_by)}</strong>
+                        </div>
+
+                        <div class="voting-status ${statusClass}">
+                            <strong>Result:</strong> <span class="status-badge ${statusClass}">${statusLabel}</span>
+                        </div>
+
+                        <div class="results-breakdown">
+                            <div class="result-vote-item">
+                                <div class="result-vote-label" style="color: #10b981;">✓ YES</div>
+                                <div class="result-vote-count" style="color: #10b981;">${yesCount}</div>
+                                <div class="result-vote-percent">${yesPct}% of votes</div>
+                            </div>
+                            <div class="result-vote-item">
+                                <div class="result-vote-label" style="color: #f59e0b;">~ ABSTAIN</div>
+                                <div class="result-vote-count" style="color: #f59e0b;">${abstainCount}</div>
+                                <div class="result-vote-percent">${abstainPct}% of votes</div>
+                            </div>
+                            <div class="result-vote-item">
+                                <div class="result-vote-label" style="color: #ef4444;">✗ NO</div>
+                                <div class="result-vote-count" style="color: #ef4444;">${noCount}</div>
+                                <div class="result-vote-percent">${noPct}% of votes</div>
+                            </div>
+                        </div>
+
+                        <div class="result-meta">
+                            <strong>Participation:</strong> ${totalVotes} / ${totalMembers} members voted
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function goBack() {
+            window.location.href = '/voting';
+        }
+    </script>
+</body>
+</html>

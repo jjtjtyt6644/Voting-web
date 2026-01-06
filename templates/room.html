@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Rooms - VoteSecure</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --success: #27ae60;
+            --warning: #f39c12;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a252f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .room-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .room-header {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+        }
+
+        .room-header i {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            display: block;
+            opacity: 0.9;
+        }
+
+        .room-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .room-header p {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .room-content {
+            padding: 50px 40px;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #999;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .tab-btn.active {
+            color: var(--secondary);
+            border-bottom-color: var(--secondary);
+        }
+
+        .tab-btn:hover {
+            color: var(--secondary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+
+        .form-group label i {
+            margin-right: 8px;
+            color: var(--secondary);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 40px;
+            transition: all 0.3s;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--secondary);
+        }
+
+        .checkbox-group:has(input:checked) {
+            background: rgba(52, 152, 219, 0.05);
+            border-color: var(--secondary);
+        }
+
+        .checkbox-label {
+            flex: 1;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .passcode-input-group {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .passcode-input-group.show {
+            display: block;
+        }
+
+        .error-message {
+            display: none;
+            padding: 15px;
+            background: #fadbd8;
+            color: #c0392b;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            display: none;
+            padding: 15px;
+            background: #d5f4e6;
+            color: #27ae60;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: var(--primary);
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .divider {
+            text-align: center;
+            color: #999;
+            margin: 25px 0;
+            font-size: 0.9rem;
+        }
+
+        .info-box {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #666;
+        }
+
+        .info-box i {
+            color: var(--secondary);
+            margin-right: 8px;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .room-container {
+                border-radius: 12px;
+            }
+
+            .room-header {
+                padding: 35px 25px;
+            }
+
+            .room-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .room-header i {
+                font-size: 2.5rem;
+            }
+
+            .room-content {
+                padding: 30px 20px;
+            }
+
+            .form-group input,
+            .form-group textarea {
+                padding: 10px 12px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .logout-btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        .user-info {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--secondary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .user-details h3 {
+            font-size: 0.95rem;
+            color: var(--primary);
+            margin-bottom: 3px;
+        }
+
+        .user-details p {
+            font-size: 0.85rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <button class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+
+    <div class="room-container">
+        <!-- Header -->
+        <div class="room-header">
+            <i class="fas fa-door-open"></i>
+            <h1>Voting Rooms</h1>
+            <p>Select or create a room to begin the voting session</p>
+        </div>
+
+        <!-- Content -->
+        <div class="room-content">
+            <!-- User Info -->
+            <div class="user-info">
+                <div class="user-avatar">{{ user_name[0].upper() }}</div>
+                <div class="user-details">
+                    <h3>{{ user_name }}</h3>
+                    <p>{{ user_position }}</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tab-container">
+                <button class="tab-btn active" data-tab="join" onclick="switchTab(event, 'join')">
+                    <i class="fas fa-sign-in-alt"></i> Join Room
+                </button>
+                <button class="tab-btn" data-tab="create" onclick="switchTab(event, 'create')">
+                    <i class="fas fa-plus-circle"></i> Create Room
+                </button>
+            </div>
+
+            <!-- Join Room Tab -->
+            <div id="join" class="tab-content active">
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    Enter the room code provided by the organizer to join an existing voting session.
+                </div>
+
+                <div id="joinError" class="error-message"></div>
+                <div id="joinSuccess" class="success-message"></div>
+
+                <form onsubmit="handleJoinRoom(event)">
+                    <div class="form-group">
+                        <label for="roomCode"><i class="fas fa-key"></i> Room Code</label>
+                        <input type="text" id="roomCode" placeholder="e.g., ABC123" maxlength="6" required>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="needsPasscode">
+                        <label for="needsPasscode" class="checkbox-label">This room has a passcode</label>
+                    </div>
+
+                    <div id="passcodeGroup" class="passcode-input-group">
+                        <div class="form-group">
+                            <label for="joinPasscode"><i class="fas fa-lock"></i> Passcode</label>
+                            <input type="password" id="joinPasscode" placeholder="Enter the room passcode">
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-arrow-right"></i> Join Room
+                        </button>
+                    </div>
+
+                    <div class="loading" id="joinLoading">
+                        <div class="spinner"></div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Create Room Tab -->
+            <div id="create" class="tab-content">
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    Create a new voting room. Share the room code with other participants to let them join.
+                </div>
+
+                <div id="createError" class="error-message"></div>
+                <div id="createSuccess" class="success-message"></div>
+
+                <form onsubmit="handleCreateRoom(event)">
+                    <div class="form-group">
+                        <label for="roomName"><i class="fas fa-heading"></i> Room Name (Optional)</label>
+                        <input type="text" id="roomName" placeholder="e.g., Committee Meeting #1" maxlength="100">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="setPasscode">
+                        <label for="setPasscode" class="checkbox-label">Set a passcode for this room</label>
+                    </div>
+
+                    <div id="passcodeSetGroup" class="passcode-input-group">
+                        <div class="form-group">
+                            <label for="createPasscode"><i class="fas fa-lock"></i> Passcode</label>
+                            <input type="password" id="createPasscode" placeholder="Create a secure passcode">
+                        </div>
+                        <div class="form-group">
+                            <label for="createPasscodeConfirm"><i class="fas fa-lock"></i> Confirm Passcode</label>
+                            <input type="password" id="createPasscodeConfirm" placeholder="Confirm the passcode">
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus-circle"></i> Create Room
+                        </button>
+                    </div>
+
+                    <div class="loading" id="createLoading">
+                        <div class="spinner"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(event, tabName) {
+            event.preventDefault();
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Deactivate all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab and activate button
+            document.getElementById(tabName).classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
+
+            // Clear messages
+            clearMessages();
+        }
+
+        // Checkbox handlers
+        document.getElementById('needsPasscode')?.addEventListener('change', function() {
+            const passcodeGroup = document.getElementById('passcodeGroup');
+            passcodeGroup.classList.toggle('show', this.checked);
+            if (!this.checked) {
+                document.getElementById('joinPasscode').value = '';
+            }
+        });
+
+        document.getElementById('setPasscode')?.addEventListener('change', function() {
+            const passcodeSetGroup = document.getElementById('passcodeSetGroup');
+            passcodeSetGroup.classList.toggle('show', this.checked);
+            if (!this.checked) {
+                document.getElementById('createPasscode').value = '';
+                document.getElementById('createPasscodeConfirm').value = '';
+            }
+        });
+
+        function clearMessages() {
+            document.querySelectorAll('.error-message, .success-message').forEach(el => {
+                el.classList.remove('show');
+                el.textContent = '';
+            });
+        }
+
+        async function handleJoinRoom(e) {
+            e.preventDefault();
+
+            const roomCode = document.getElementById('roomCode').value.toUpperCase();
+            const hasPasscode = document.getElementById('needsPasscode').checked;
+            const passcode = hasPasscode ? document.getElementById('joinPasscode').value : '';
+
+            const errorEl = document.getElementById('joinError');
+            const successEl = document.getElementById('joinSuccess');
+            const loadingEl = document.getElementById('joinLoading');
+
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+
+            if (hasPasscode && !passcode) {
+                errorEl.textContent = 'Please enter the passcode';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            loadingEl.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/room/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ room_code: roomCode, passcode })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successEl.textContent = `Successfully joined "${data.room_name}"! Redirecting...`;
+                    successEl.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = '/lobby';
+                    }, 1500);
+                } else {
+                    errorEl.textContent = data.error || 'Failed to join room';
+                    errorEl.classList.add('show');
+                }
+            } catch (error) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.add('show');
+                console.error('Join error:', error);
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        async function handleCreateRoom(e) {
+            e.preventDefault();
+
+            const roomName = document.getElementById('roomName').value || `Room ${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+            const setPasscode = document.getElementById('setPasscode').checked;
+            const password = document.getElementById('createPasscode').value;
+            const confirmPassword = document.getElementById('createPasscodeConfirm').value;
+
+            const errorEl = document.getElementById('createError');
+            const successEl = document.getElementById('createSuccess');
+            const loadingEl = document.getElementById('createLoading');
+
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+
+            if (setPasscode && password !== confirmPassword) {
+                errorEl.textContent = 'Passcodes do not match';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            loadingEl.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/room/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        room_name: roomName,
+                        passcode: setPasscode ? password : ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const roomInfo = `
+                        <strong>${data.room_name}</strong><br>
+                        Room Code: <strong style="font-family: monospace;">${data.room_code}</strong><br>
+                        Redirecting to lobby...
+                    `;
+                    successEl.innerHTML = roomInfo;
+                    successEl.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = '/lobby';
+                    }, 2000);
+                } else {
+                    errorEl.textContent = data.error || 'Failed to create room';
+                    errorEl.classList.add('show');
+                }
+            } catch (error) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.add('show');
+                console.error('Create error:', error);
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout';
+            }
+        }
+
+        // Auto-redirect if already in a room
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/api/room/current');
+                if (response.ok) {
+                    // User already in a room, redirect to lobby
+                    window.location.href = '/lobby';
+                }
+            } catch (error) {
+                // User not in room, stay on page
+            }
+        });
+    </script>
+</body>
+</html>

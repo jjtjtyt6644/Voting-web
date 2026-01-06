@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div>
+                    <h1>Class committee voting</h1>
+                    <p class="subtitle">Voting Platform by Junyu</p>
+                </div>
+                <div class="user-info">
+                    <span class="user-name">{{ user_name }}</span>
+                    <span class="user-position">📍 {{ user_position }}</span>
+                    <a href="/logout" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Active Proposals Info -->
+            <aside class="sidebar">
+                <div class="panel info-panel">
+                    <h2>📊 Voting Stats</h2>
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Proposals</span>
+                            <span class="stat-value" id="totalProposals">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Your Votes</span>
+                            <span class="stat-value" id="yourVotes">0</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="goToResults()" class="nav-btn">View Results</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Panel: Proposals -->
+            <main class="content">
+                <div class="panel proposals-panel">
+                    <h2>Active Proposals</h2>
+                    
+                    <div class="add-proposal-form">
+                        <input type="text" id="proposalTitle" placeholder="Proposal Title" maxlength="100">
+                        <textarea id="proposalDesc" placeholder="Proposal Description" maxlength="500"></textarea>
+                        <button onclick="createProposal()">Submit Proposal</button>
+                    </div>
+
+                    <div class="proposals-list" id="proposalsList">
+                        <p class="empty">No proposals yet</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Voting Modal -->
+    <div id="votingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeVotingModal()">&times;</span>
+            <h2 id="modalTitle">Vote on Proposal</h2>
+            <p id="modalDescription"></p>
+            
+            <div class="vote-info">
+                <label for="passwordInput">Enter Your Password (Required for Security):</label>
+                <input type="password" id="passwordInput" placeholder="Your password" minlength="4">
+                <small style="color: #999; margin-top: 5px; display: block;">Password is required to ensure fair voting</small>
+            </div>
+
+            <div class="voting-buttons">
+                <button class="vote-btn yes" onclick="submitVote('yes')">✓ YES</button>
+                <button class="vote-btn abstain" onclick="submitVote('abstain')">~ ABSTAIN</button>
+                <button class="vote-btn no" onclick="submitVote('no')">✗ NO</button>
+            </div>
+
+            <div class="voting-results">
+                <h3>Current Results</h3>
+                <div class="results-grid">
+                    <div class="result-item">
+                        <span class="yes-label">YES</span>
+                        <span class="yes-count" id="yesCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="abstain-label">ABSTAIN</span>
+                        <span class="abstain-count" id="abstainCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="no-label">NO</span>
+                        <span class="no-count" id="noCount">0</span>
+                    </div>
+                </div>
+                <p class="voted-info"><span id="votedCount">0</span> / <span id="totalCount">0</span> members voted</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
