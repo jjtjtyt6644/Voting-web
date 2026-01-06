@@ -488,7 +488,7 @@
             </p>
             <div class="button-group">
                 <button class="btn btn-yes" onclick="agreeToTiebreak()">✓ YES, Break Tie</button>
-                <button class="btn btn-secondary" onclick="closeTieBreaker()">Close</button>
+                <button class="btn btn-secondary" onclick="declineToTiebreak()">✗ NO, Skip Tie</button>
             </div>
         </div>
     </div>
@@ -818,6 +818,21 @@
             document.getElementById('sharedResultsOverlay').classList.add('active');
         }
 
+        async function declineToTiebreak() {
+            try {
+                // Mark that user declined tiebreak
+                await fetch('/api/decline-tiebreak', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                // Proceed to results
+                document.getElementById('breakTieOverlay').classList.remove('active');
+                document.getElementById('sharedResultsOverlay').classList.add('active');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
         async function agreeToTiebreak() {
             try {
                 // Mark that this user agreed to break tie
@@ -835,13 +850,19 @@
                 updateAgreementCount();
                 const interval = setInterval(updateAgreementCount, 1000);
 
-                // Check if all users have agreed
+                // Check if all users have agreed or if someone rejected
                 const checkAllAgreed = setInterval(async () => {
                     try {
                         const response = await fetch('/api/check-tiebreak-agreement');
                         const data = await response.json();
                         
-                        if (data.all_agreed) {
+                        if (data.rejected) {
+                            // Someone declined tiebreak - go directly to results
+                            clearInterval(interval);
+                            clearInterval(checkAllAgreed);
+                            document.getElementById('tiebreakerAgreementWaitingOverlay').classList.remove('active');
+                            document.getElementById('sharedResultsOverlay').classList.add('active');
+                        } else if (data.all_agreed) {
                             clearInterval(interval);
                             clearInterval(checkAllAgreed);
 
@@ -864,6 +885,12 @@
                 const data = await response.json();
                 document.getElementById('agreementCount').textContent = data.agreed;
                 document.getElementById('agreementTotal').textContent = data.total;
+                
+                // If rejected, also update the display
+                if (data.rejected) {
+                    document.getElementById('agreementCount').textContent = '0';
+                    document.getElementById('agreementTotal').textContent = '0';
+                }
             } catch (error) {
                 console.error('Error:', error);
             }

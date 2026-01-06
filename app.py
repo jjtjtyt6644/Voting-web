@@ -15,6 +15,7 @@ tiebreaker_votes = {}  # Format: {proposer_user_id: {'yes': X, 'no': Y}}
 users_finished_tiebreaker = set()  # Track users who have finished tie breaking
 users_agreed_to_tiebreak = set()  # Track users who agreed to break tie
 users_arrived_tiebreak = set()  # Track users who have loaded the tiebreaker page
+tiebreak_rejected = False  # Flag: if any user rejected tiebreak, skip for everyone
 
 # Room management
 voting_rooms = {}  # Format: {room_code: {'name': str, 'passcode': str, 'created_by': user_id, 'users': set(), 'created_date': timestamp}}
@@ -39,8 +40,9 @@ def api_login_required(f):
     return decorated_function
 
 def get_db():
-    db = sqlite3.connect(DATABASE)
+    db = sqlite3.connect(DATABASE, timeout=10.0, check_same_thread=False)
     db.row_factory = sqlite3.Row
+    db.isolation_level = 'DEFERRED'
     return db
 
 def init_db():
@@ -76,6 +78,7 @@ def init_db():
             );
         ''')
         db.commit()
+        db.close()
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -110,6 +113,9 @@ def room_page():
 @app.route('/voting')
 @login_required
 def voting_page():
+    global tiebreak_rejected
+    # Reset tiebreak flag for new voting session
+    tiebreak_rejected = False
     return render_template('voting.html', user_name=session.get('user_name'), user_position=session.get('user_position'), user_id=session.get('user_id'))
 
 @app.route('/tiebreaker')
@@ -141,17 +147,20 @@ def login_page():
             return jsonify({'error': 'Name and password required'}), 400
         
         db = get_db()
-        user = db.execute('SELECT * FROM users WHERE name = ?', (name,)).fetchone()
-        
-        if user and user['password'] == hash_password(password):
-            session['user_id'] = user['id']
-            session['user_name'] = user['name']
-            session['user_position'] = user['position']
-            # Add user to logged_in_users set
-            logged_in_users.add(user['id'])
-            return jsonify({'success': True, 'message': 'Logged in successfully'}), 200
-        else:
-            return jsonify({'error': 'Invalid credentials'}), 401
+        try:
+            user = db.execute('SELECT * FROM users WHERE name = ?', (name,)).fetchone()
+            
+            if user and user['password'] == hash_password(password):
+                session['user_id'] = user['id']
+                session['user_name'] = user['name']
+                session['user_position'] = user['position']
+                # Add user to logged_in_users set
+                logged_in_users.add(user['id'])
+                return jsonify({'success': True, 'message': 'Logged in successfully'}), 200
+            else:
+                return jsonify({'error': 'Invalid credentials'}), 401
+        finally:
+            db.close()
     
     return render_template('login.html')
 
@@ -170,20 +179,23 @@ def register():
     
     try:
         db = get_db()
-        cursor = db.execute(
-            'INSERT INTO users (name, password, position) VALUES (?, ?, ?)',
-            (name, hash_password(password), position)
-        )
-        db.commit()
-        
-        user_id = cursor.lastrowid
-        session['user_id'] = user_id
-        session['user_name'] = name
-        session['user_position'] = position
-        # Add user to logged_in_users set
-        logged_in_users.add(user_id)
-        
-        return jsonify({'success': True, 'message': 'Registered successfully'}), 201
+        try:
+            cursor = db.execute(
+                'INSERT INTO users (name, password, position) VALUES (?, ?, ?)',
+                (name, hash_password(password), position)
+            )
+            db.commit()
+            
+            user_id = cursor.lastrowid
+            session['user_id'] = user_id
+            session['user_name'] = name
+            session['user_position'] = position
+            # Add user to logged_in_users set
+            logged_in_users.add(user_id)
+            
+            return jsonify({'success': True, 'message': 'Registered successfully'}), 201
+        finally:
+            db.close()
     except sqlite3.IntegrityError:
         return jsonify({'error': 'Username already exists'}), 400
 
@@ -708,6 +720,18 @@ def agree_to_tiebreak():
     users_agreed_to_tiebreak.add(user_id)
     return jsonify({'success': True}), 200
 
+@app.route('/api/decline-tiebreak', methods=['POST'])
+@api_login_required
+def decline_tiebreak():
+    """User declines to break tie - reject tiebreak for everyone"""
+    global tiebreak_rejected
+    user_id = session.get('user_id')
+    # Mark tiebreak as rejected - everyone should return to results
+    tiebreak_rejected = True
+    # Remove from agreed set (if they were in it)
+    users_agreed_to_tiebreak.discard(user_id)
+    return jsonify({'success': True}), 200
+
 @app.route('/api/check-tiebreak-agreement', methods=['GET'])
 @api_login_required
 def check_tiebreak_agreement():
@@ -730,7 +754,8 @@ def check_tiebreak_agreement():
     return jsonify({
         'all_agreed': all_agreed,
         'agreed': agreed_users,
-        'total': total_users
+        'total': total_users,
+        'rejected': tiebreak_rejected  # If any user declined, return rejected flag
     })
 
 @app.route('/api/arrived-tiebreaker', methods=['POST'])
