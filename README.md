@@ -173,16 +173,10 @@ The application uses SQLite with the following main tables:
 - User validation on all API endpoints
 - Room-scoped data isolation
 
-## 🐛 Known Issues & Limitations
-
-- In-memory room management (lost on restart - use database for persistence)
-- Passcodes stored in plain text (consider adding hashing)
-- No WebSocket support (uses polling for real-time updates)
-- No admin dashboard for managing active rooms
 
 ## 📝 Version History
 
-See [Update Logs](http://localhost:5000/update) for detailed version history and feature updates.
+See [Update Logs] for detailed version history and feature updates.
 
 ### Latest Version: v2.1.1
 - Fixed proposal counting for multi-room isolation
