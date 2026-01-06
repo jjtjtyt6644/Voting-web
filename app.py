@@ -662,9 +662,18 @@ def mark_voting_complete():
 @api_login_required
 def check_all_voted():
     """Check if all users have finished voting"""
-    db = get_db()
-    total_users = db.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-    finished_users = len(users_finished_voting)
+    user_id = session['user_id']
+    if user_id not in user_rooms:
+        return jsonify({'error': 'User not in any room'}), 400
+    
+    room_code = user_rooms[user_id]
+    room = voting_rooms.get(room_code)
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+    
+    # Count only room members who are logged in
+    total_users = len(room['users'] & logged_in_users)
+    finished_users = len(users_finished_voting & room['users'])
     
     all_voted = finished_users == total_users and total_users > 0
     
