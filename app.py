@@ -9,6 +9,7 @@ DATABASE = 'un_voting.db'
 ready_users = set()  # Track which users are ready
 logged_in_users = set()  # Track currently logged-in users
 proposal_submissions = {}  # Track proposal submissions by user_id
+users_skipped_proposal = set()  # Track users who skipped proposal submission
 submission_votes = {}  # Format: {proposer_user_id: {'yes': X, 'no': Y, 'abstain': Z}}
 users_finished_voting = set()  # Track users who have finished voting
 tiebreaker_votes = {}  # Format: {proposer_user_id: {'yes': X, 'no': Y}}
@@ -388,6 +389,38 @@ def get_ready_status():
     
     return jsonify({'ready': ready_count, 'total': total_users, 'all_ready': all_ready})
 
+@app.route('/api/reset-ready-status', methods=['POST'])
+@api_login_required
+def reset_ready_status():
+    """Reset user's ready status when going back from voting"""
+    user_id = session['user_id']
+    ready_users.discard(user_id)
+    
+    # Get user's room
+    if user_id not in user_rooms:
+        return jsonify({'error': 'User not in any room'}), 400
+    
+    room_code = user_rooms[user_id]
+    room = voting_rooms.get(room_code)
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+    
+    # Only clear proposals for users in THIS room
+    room_users = room['users']
+    for uid in list(proposal_submissions.keys()):
+        if uid in room_users:
+            proposal_submissions.pop(uid, None)
+    
+    for uid in list(submission_votes.keys()):
+        if uid in room_users:
+            submission_votes.pop(uid, None)
+    
+    for uid in list(users_skipped_proposal):
+        if uid in room_users:
+            users_skipped_proposal.discard(uid)
+    
+    return jsonify({'success': True}), 200
+
 @app.route('/api/random-proposer', methods=['GET'])
 @api_login_required
 def get_random_proposer():
@@ -422,7 +455,24 @@ def submit_proposal_data():
         'user_id': user_id
     }
     
+    # Remove from skipped set if they were skipping
+    users_skipped_proposal.discard(user_id)
+    
     return jsonify({'success': True}), 201
+
+@app.route('/api/skip-proposal', methods=['POST'])
+@api_login_required
+def skip_proposal():
+    """User chooses to skip proposal submission"""
+    user_id = session['user_id']
+    
+    # Mark user as having skipped
+    users_skipped_proposal.add(user_id)
+    
+    # Remove from proposals if they submitted earlier
+    proposal_submissions.pop(user_id, None)
+    
+    return jsonify({'success': True}), 200
 
 @app.route('/api/all-proposals-submitted', methods=['GET'])
 @api_login_required
@@ -441,9 +491,11 @@ def check_all_proposals():
     
     # Count only users in the same room
     total_users = len(room['users'] & logged_in_users)
-    submitted = len(proposal_submissions)
+    # Count users who submitted OR skipped
+    room_users = room['users']
+    submitted_or_skipped = len([uid for uid in room_users if uid in proposal_submissions or uid in users_skipped_proposal])
     
-    return jsonify({'submitted': submitted, 'total': total_users, 'all_submitted': submitted == total_users})
+    return jsonify({'submitted': submitted_or_skipped, 'total': total_users, 'all_submitted': submitted_or_skipped == total_users})
 
 @app.route('/api/proposals-to-vote', methods=['GET'])
 @api_login_required
@@ -695,6 +747,14 @@ def check_all_voted():
         'total': total_users
     })
 
+@app.route('/api/mark-voted', methods=['POST'])
+@api_login_required
+def mark_voted():
+    """Mark user as voted (for auto-voting when no proposals)"""
+    user_id = session.get('user_id')
+    users_finished_voting.add(user_id)
+    return jsonify({'success': True}), 200
+
 @app.route('/api/start-tiebreaker', methods=['POST'])
 @api_login_required
 def start_tiebreaker():
@@ -745,9 +805,12 @@ def check_tiebreak_agreement():
     if not room:
         return jsonify({'error': 'Room not found'}), 404
     
-    # Count only room members who are logged in
-    total_users = len(room['users'] & logged_in_users)
-    agreed_users = len(users_agreed_to_tiebreak & room['users'])
+    # Get all room members who are currently logged in
+    room_users = room['users']
+    total_users = len([uid for uid in room_users if uid in logged_in_users])
+    
+    # Count how many have agreed
+    agreed_users = len([uid for uid in room_users if uid in users_agreed_to_tiebreak])
     
     all_agreed = agreed_users == total_users and total_users > 0
     
@@ -757,6 +820,7 @@ def check_tiebreak_agreement():
         'total': total_users,
         'rejected': tiebreak_rejected  # If any user declined, return rejected flag
     })
+
 
 @app.route('/api/arrived-tiebreaker', methods=['POST'])
 @api_login_required
