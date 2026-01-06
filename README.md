@@ -155,34 +155,6 @@ Voting-web/
 - `GET /api/users` - Get room members
 - `GET /api/ready-status` - Get user ready status
 
-## 🌐 Deployment on Render
-
-### Prerequisites
-- GitHub account with the repository pushed
-- Render account (https://render.com)
-
-### Steps
-
-1. **Push code to GitHub**
-   ```bash
-   git add .
-   git commit -m "Ready for deployment"
-   git push origin master
-   ```
-
-2. **Create Render Service**
-   - Go to https://render.com
-   - Click "New +" → "Web Service"
-   - Connect your GitHub account and select `Voting-web` repository
-   - Set configuration:
-     - **Build Command**: `pip install -r requirements.txt`
-     - **Start Command**: `gunicorn app:app`
-     - **Publish Directory**: (leave blank)
-
-3. **Deploy**
-   - Click "Create Web Service"
-   - Wait for build and deployment to complete
-   - Your app will be live at the provided URL
 
 ## 📊 Database Schema
 
@@ -236,23 +208,6 @@ This project is open source and available under the MIT License.
 
 **Junyu** - Created 2026
 
-## 📞 Support
-
-For issues, questions, or suggestions:
-- Email: support@votesecure.com
-- Available 24/7
-
-## 🎯 Roadmap
-
-- [ ] Database persistence for rooms (eliminate in-memory storage)
-- [ ] Real-time updates with WebSocket/Socket.IO
-- [ ] Admin dashboard for room management
-- [ ] Role-based access control (Admin, Organizer, Voter)
-- [ ] Support for more voting methods (Ranked choice, etc.)
-- [ ] Dark mode UI
-- [ ] Mobile app
-- [ ] Export results to CSV/PDF
-
 ---
 
-**Made with ❤️ for secure and transparent voting**
+**Made with for secure and transparent voting**
